@@ -34,18 +34,38 @@ namespace NetworkEngine_5._0.Client
         public static int ID = 0;
 
         private static ClientState state = ClientState.Disconnected;
+        private static ConnectionMode connectionMode;
 
         public static bool clientLog = true;
         public static bool udpLog = true;
         public static bool exception = false;
 
-        public static async Task Connect(string _ip, int _port = 7777)
+        public static void Connect(string _ip, int _port = 7777, ConnectionMode _connectionMode = ConnectionMode.TcpUdp)
         {
+
             if (state == ClientState.Connected)
             {
                 print("You are already connected !", ConsoleColor.Yellow);
                 return;
             }
+
+            connectionMode = _connectionMode;
+
+            switch (connectionMode)
+            {
+                case ConnectionMode.TcpOnly:
+                    _ = ConnectTcpOnly(_ip, _port);
+                    break;
+
+                case ConnectionMode.TcpUdp:
+                    _ = ConnectTcpUdp(_ip, _port);
+                    break;
+            }
+
+        }
+
+        public static async Task ConnectTcpOnly(string _ip, int _port = 7777)
+        {
 
             try
             {
@@ -69,7 +89,91 @@ namespace NetworkEngine_5._0.Client
                     CloseConnection();
                     return;
                 }
-                if (response == "#NO")
+                else if (response == "#NO")
+                {
+                    OnConnectionRefused?.Invoke();
+                    print("Connection failed : Server connection refused !", ConsoleColor.Red);
+                    CloseConnection();
+                    return;
+                }
+                else
+                {
+                    string clientId = await reader.ReadLineAsync() ?? "#-1";
+                    ID = int.Parse(clientId.Substring(1));
+
+                    cts = new CancellationTokenSource();
+                    _ = RecepterTCP(cts.Token);
+
+                    state = ClientState.Connected;
+
+                    OnConnected?.Invoke();
+                    print("Connexion réussi !", ConsoleColor.Yellow);
+
+                }
+
+            }
+            catch (SocketException e)
+            {
+                OnTimeOut?.Invoke();
+                print("Connection failed : Check IP and Port or Server is not online ! \n", ConsoleColor.Red);
+                CloseConnection();
+            }
+
+        }
+
+        public static async Task ConnectTcpUdp(string _ip, int _port = 7777)
+        {
+
+            try
+            {
+
+                state = ClientState.Connecting;
+
+                /// Test UDP avant tout
+                udpClient = new UdpClient();
+                udpClient.Connect(_ip, _port);
+
+                SendUDP("#CONNECTION");
+
+                var udpTask = udpClient.ReceiveAsync();
+                var timeoutTask = Task.Delay(3000);
+
+                var finished = await Task.WhenAny(udpTask, timeoutTask);
+
+                if (finished == timeoutTask) //  || udpTask.IsFaulted
+                {
+                    print("Connection was failed !", ConsoleColor.Red);
+                    CloseConnection();
+                    return;
+                }
+
+                UdpReceiveResult result = await udpTask;
+                byte[] bytes = result.Buffer;
+                string id = Encoding.UTF8.GetString(bytes);
+
+                ID = int.Parse(id);
+
+
+                client = new TcpClient();
+                await client.ConnectAsync(_ip, _port);
+
+                stream = client.GetStream();
+                reader = new StreamReader(stream);
+                writer = new StreamWriter(stream);
+                writer.AutoFlush = true;
+
+                await writer.WriteLineAsync(ID.ToString());
+
+                string response = await reader.ReadLineAsync() ?? "";
+
+                if (response == "#FULL")
+                {
+                    OnServerFull?.Invoke();
+                    print("Connection failed : Server is full !", ConsoleColor.Red);
+                    CloseConnection();
+                    return;
+                }
+                else if (response == "#NO")
                 {
                     OnConnectionRefused?.Invoke();
                     print("Connection failed : Server connection refused !", ConsoleColor.Red);
@@ -79,15 +183,6 @@ namespace NetworkEngine_5._0.Client
                 else
                 {
 
-                    udpClient = new UdpClient();
-                    udpClient.Connect(_ip, _port);
-
-                    string myID = await reader.ReadLineAsync() ?? "#0";
-
-                    ID = int.Parse(myID.Substring(1, myID.Length - 1));
-
-                    SendUDP($"#CONNECTION {ID}");
-
                     cts = new CancellationTokenSource(); 
                     _ = RecepterTCP(cts.Token);
                     RecepterUDP();
@@ -95,6 +190,7 @@ namespace NetworkEngine_5._0.Client
                     state = ClientState.Connected;
 
                     OnConnected?.Invoke();
+                    print("Connexion réussi !", ConsoleColor.Yellow);
 
                 }
 
@@ -266,6 +362,13 @@ namespace NetworkEngine_5._0.Client
             Disconnected = 0,
             Connecting = 1,
             Connected = 2,
+        }
+
+        public enum ConnectionMode
+        {
+            TcpOnly = 0,
+            UdpWithClientTcpFallback = 1,
+            TcpUdp = 2,
         }
 
 

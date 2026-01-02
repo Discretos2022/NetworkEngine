@@ -13,7 +13,7 @@ namespace NetworkEngine_5._0.Server
     public class Clients
     {
 
-        public TaskCompletionSource<IPEndPoint> IsUDPReady = new TaskCompletionSource<IPEndPoint>();
+        public TaskCompletionSource<bool> IsConnected = new TaskCompletionSource<bool>();
 
         private TcpClient client;
         private int ID;
@@ -25,15 +25,15 @@ namespace NetworkEngine_5._0.Server
 
         public CancellationTokenSource cts;
 
-        public Clients(TcpClient _client, int _ID)
+        public Clients(int _ID)
         {
-            client = _client;
+            // client = _client;
             ID = _ID;
 
-            stream = client.GetStream();
-            reader = new StreamReader(stream);
-            writer = new StreamWriter(stream);
-            writer.AutoFlush = true;
+            //stream = client.GetStream();
+            //reader = new StreamReader(stream);
+            //writer = new StreamWriter(stream);
+            //writer.AutoFlush = true;
 
         }
 
@@ -116,6 +116,21 @@ namespace NetworkEngine_5._0.Server
             client?.Close();
         }
 
+
+        public void SetTcpClient(TcpClient client)
+        {
+            this.client = client;
+
+            stream = client.GetStream();
+            reader = new StreamReader(stream);
+            writer = new StreamWriter(stream);
+            writer.AutoFlush = true;
+        }
+
+        public void SetID(int id)
+        {
+            this.ID = id;
+        }
 
         public string GetIP()
         {
