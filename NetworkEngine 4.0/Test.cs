@@ -5,13 +5,14 @@ using NetworkEngine_5._0.Error;
 using System;
 using System.Data;
 using System.Text;
+using NetworkEngine_4._0.Server;
 
 /**
  * NetworkEngine
- * Version : 5.0
+ * Version : 5.2
  * Build : 0
- * SIEDEL Joshua © 2023-2024
- * Copyright © 2023-2024 SIEDEL Joshua
+ * SIEDEL Joshua © 2023-2026
+ * Copyright © 2023-2026 SIEDEL Joshua
  */
 namespace Tester
 {
@@ -21,7 +22,7 @@ namespace Tester
         {
             //Console.WriteLine("NetworkEngine 5.0  Copyright © 2024 SIEDEL Joshua \n");
 
-            string title = "NetworkEngine 5.2  Copyright © 2024-2025 SIEDEL Joshua \n";
+            string title = "NetworkEngine 5.2  Copyright © 2024-2026 SIEDEL Joshua \n";
 
             int[] table = { 1, 3, 9, 11, 10, 2, 14, 6, 12, 4, 5, 13 };
 
@@ -87,26 +88,31 @@ namespace Tester
 
             }
 
+            ServerBase server = null;
+
             if (args[0] == "/start")
             {
 
-                if (args.Length == 2)
-                {
-                    Server.Start(int.Parse(args[1]));
-                }
-                else if (args.Length == 3)
-                {
-                    Server.Start(int.Parse(args[1]), int.Parse(args[2]));
-                }
-                // Le serveur a désormais un paramètre pour tcp fallback si l'udp n'est pas dispo
-                //else if (args.Length == 4)
+                //if (args.Length == 2)
                 //{
-                //    Server.Start(int.Parse(args[1]), int.Parse(args[2]), bool.Parse(args[3]));
+                //    Server.Start(int.Parse(args[1]));
                 //}
-                else
-                {
-                    Server.Start();
-                }
+                //else if (args.Length == 3)
+                //{
+                //    Server.Start(int.Parse(args[1]), int.Parse(args[2]));
+                //}
+                //// Le serveur a désormais un paramètre pour tcp fallback si l'udp n'est pas dispo
+                ////else if (args.Length == 4)
+                ////{
+                ////    Server.Start(int.Parse(args[1]), int.Parse(args[2]), bool.Parse(args[3]));
+                ////}
+                //else
+                //{
+                //    Server.Start();
+                //}
+
+                server = new ServerTcp(7777, 1000);
+                server.Start();
 
                 
             }
@@ -114,11 +120,13 @@ namespace Tester
             if (args[0] == "/stop")
             {
                 Server.StopServer();
+                server?.Stop();
             }
 
             if (args[0] == "/connect")
             {
-                Client.Connect(args[1], int.Parse(args[2]));
+                // Client.Connect(args[1], int.Parse(args[2]));
+                Client.Connect("192.168.1.25", 7777);
             }
 
             if (args[0] == "/disconnect")

@@ -15,6 +15,7 @@ namespace NetworkEngine_5._0.Client
         public static event Action? OnTimeOut;
         public static event Action? OnServerFull;
         public static event Action? OnConnectionRefused;
+        public static event Action? OnConnectionFail;
         public static event Action? OnConnectionLost;
         public static event Action? OnServerShutdown;
         public static event Action? OnConnected;
@@ -40,7 +41,7 @@ namespace NetworkEngine_5._0.Client
         public static bool udpLog = true;
         public static bool exception = false;
 
-        public static void Connect(string _ip, int _port = 7777, ConnectionMode _connectionMode = ConnectionMode.TcpUdp)
+        public static void Connect(string _ip, int _port = 7777, ConnectionMode _connectionMode = ConnectionMode.TcpOnly)
         {
 
             if (state == ClientState.Connected)
@@ -80,6 +81,9 @@ namespace NetworkEngine_5._0.Client
                 writer = new StreamWriter(stream);
                 writer.AutoFlush = true;
 
+
+                await writer.WriteLineAsync("5.1");
+
                 string response = await reader.ReadLineAsync() ?? "";
 
                 if (response == "#FULL")
@@ -93,6 +97,13 @@ namespace NetworkEngine_5._0.Client
                 {
                     OnConnectionRefused?.Invoke();
                     print("Connection failed : Server connection refused !", ConsoleColor.Red);
+                    CloseConnection();
+                    return;
+                }
+                else if (response == "")
+                {
+                    OnConnectionFail?.Invoke();
+                    print("Connection failed : Server connection failed !", ConsoleColor.Red);
                     CloseConnection();
                     return;
                 }
@@ -371,6 +382,20 @@ namespace NetworkEngine_5._0.Client
             TcpUdp = 2,
         }
 
+        public static async Task<(bool success, T result)> CreateTimeout<T>(Task<T> task, int timeout)
+        {
+
+            var timeoutTask = Task.Delay(timeout);
+            var finished = await Task.WhenAny(task, timeoutTask);
+
+            if (finished == timeoutTask)
+                throw new TimeoutException();
+
+            return (true, await task);
+
+
+
+        }
 
     }
 }

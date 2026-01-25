@@ -125,6 +125,7 @@ namespace NetworkEngine_5._0.Server
             reader = new StreamReader(stream);
             writer = new StreamWriter(stream);
             writer.AutoFlush = true;
+
         }
 
         public void SetID(int id)
