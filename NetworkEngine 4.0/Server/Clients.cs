@@ -95,9 +95,19 @@ namespace NetworkEngine_5._0.Server
         }
 
 
-        public async void Send(string msg)
+        //public async void Send(string msg)
+        //{
+        //    await writer.WriteLineAsync(msg);
+        //}
+
+        public void Send(byte[] bytes)
         {
-            await writer.WriteLineAsync(msg);
+            _ = InternalSend(bytes);
+        }
+
+        private async Task InternalSend(byte[] bytes)
+        {
+            await stream.WriteAsync(bytes, 0, bytes.Length);
         }
 
 

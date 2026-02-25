@@ -1,11 +1,10 @@
 ﻿using Microsoft.VisualBasic;
-using NetworkEngine_5._0.Client;
-using NetworkEngine_5._0.Server;
-using NetworkEngine_5._0.Error;
+using NetworkEngine_5._2.Client;
+using NetworkEngine_5._2.Engine;
+using NetworkEngine_5._2.Server;
 using System;
 using System.Data;
 using System.Text;
-using NetworkEngine_4._0.Server;
 
 /**
  * NetworkEngine
@@ -18,6 +17,11 @@ namespace Tester
 {
     internal class Test
     {
+
+        static ServerBase server = new ServerTcp(7777, 1000);
+        // static ClientBase client = new ClientTcp("192.168.1.25", 7777); // 172.20.10.8
+        static ClientBase client = new ClientTcp("172.20.10.8", 7777); // 172.20.10.8
+
         static void Main(string[] args)
         {
             //Console.WriteLine("NetworkEngine 5.0  Copyright © 2024 SIEDEL Joshua \n");
@@ -43,15 +47,22 @@ namespace Tester
 
             //Client.Connect("172.20.10.8", 7777); // 192.168.1.25  172.20.10.8  10.93.15.97
 
-            Server.OnServerFull += () => 
-            {
-                Console.WriteLine("SERVER FULL, une connection a été refusée !");
-            };
+            //Server.OnServerFull += () => 
+            //{
+            //    Console.WriteLine("SERVER FULL, une connection a été refusée !");
+            //};
 
-            Client.OnTimeOut += () =>
-            {
-                Console.WriteLine("TIMEOUT !");
-            };
+            //Client.OnTimeOut += () =>
+            //{
+            //    Console.WriteLine("TIMEOUT !");
+            //};
+
+
+            ClientBase.OnReceive += ClientBase_OnReceive;
+            ClientBase.OnConnectionLost += ClientBase_OnConnectionLost;
+
+            ServerBase.OnReceive += ServerBase_OnReceive;
+
 
             while (true)
             {
@@ -59,6 +70,39 @@ namespace Tester
                 Command();
 
             }
+
+        }
+
+        private static void ClientBase_OnConnectionLost()
+        {
+            Console.WriteLine("Connection Lost");
+        }
+
+        private static void ClientBase_OnReceive(Packet packet)
+        {
+
+            //MemoryStream ms = new MemoryStream(bytes);
+            //BinaryReader bw = new BinaryReader(ms);
+            //string message = bw.ReadString();
+            //Console.WriteLine("New message : " + message);
+
+            string message = packet.ReadString();
+            Console.WriteLine("New message from server : " + message);
+
+        }
+
+        private static void ServerBase_OnReceive(int clientId, byte[] bytes)
+        {
+
+            //MemoryStream ms = new MemoryStream(bytes);
+            //BinaryReader bw = new BinaryReader(ms);
+            //string message = bw.ReadString();
+            //Console.WriteLine("New message : " + message);
+
+            Packet packet = new Packet(bytes);
+
+            string message = packet.ReadString();
+            Console.WriteLine($"New message of client {clientId} : " + message);
 
         }
 
@@ -76,19 +120,19 @@ namespace Tester
             {
                 print("\nConnected users : \n", ConsoleColor.Cyan);
 
-                if(Server.clients.Count == 0)
-                    print("\tThere are no user !", ConsoleColor.Cyan);
+                //if(Server.clients.Count == 0)
+                //    print("\tThere are no user !", ConsoleColor.Cyan);
 
-                for (int i = 0; i < Server.clients.Count; i++)
-                {
-                    print("\t" + Server.clients[i].GetID() + " : " + Server.clients[i].GetIP() + " | " + Server.clients[i].udpEndPoint, ConsoleColor.Cyan);
-                }
+                //for (int i = 0; i < Server.clients.Count; i++)
+                //{
+                //    print("\t" + Server.clients[i].GetID() + " : " + Server.clients[i].GetIP() + " | " + Server.clients[i].udpEndPoint, ConsoleColor.Cyan);
+                //}
 
                 Console.WriteLine("");
 
             }
 
-            ServerBase server = null;
+            //ServerBase server = null;
 
             if (args[0] == "/start")
             {
@@ -111,7 +155,7 @@ namespace Tester
                 //    Server.Start();
                 //}
 
-                server = new ServerTcp(7777, 1000);
+
                 server.Start();
 
                 
@@ -119,79 +163,111 @@ namespace Tester
 
             if (args[0] == "/stop")
             {
-                Server.StopServer();
+                //Server.StopServer();
                 server?.Stop();
             }
 
             if (args[0] == "/connect")
             {
                 // Client.Connect(args[1], int.Parse(args[2]));
-                Client.Connect("192.168.1.25", 7777);
+                // Client.Connect("192.168.1.25", 7777);
+                client.Connect();
             }
 
             if (args[0] == "/disconnect")
             {
-                Client.Disconnect();
+                client.Disconnect();
             }
 
             if (args[0] == "/send")
             {
-                if(args.Length == 1)
-                    Client.SendTCP("NetworkEngine 5.2");
-                else
-                    Client.SendTCP(msg.Substring(6, msg.Length - 6));
+                //if(args.Length == 1)
+                //    Client.SendTCP("NetworkEngine 5.2");
+                //else
+                //    Client.SendTCP(msg.Substring(6, msg.Length - 6));
+
+                if (args.Length > 1)
+                {
+                    //MemoryStream ms = new MemoryStream();
+                    //BinaryWriter bw = new BinaryWriter(ms);
+                    //bw.Write(args[1]);
+                    //((ClientTcp)client).Send(ms.ToArray());
+
+                    Packet packet = new Packet();
+                    packet.WriteString(args[1]);
+                    ((ClientTcp)client).Send(packet);
+
+                }
+
             }
 
             if (args[0] == "/udp")
             {
-                if (args.Length == 1)
-                    Client.SendUDP("NetworkEngine 5.2");
-                else
-                    Client.SendUDP(msg.Substring(5, msg.Length - 5));
+                //if (args.Length == 1)
+                //    Client.SendUDP("NetworkEngine 5.2");
+                //else
+                //    Client.SendUDP(msg.Substring(5, msg.Length - 5));
             }
 
             if (args[0] == "/stcp")
             {
-                if (args.Length == 1)
-                    Server.SendTCP("NetworkEngine 5.2");
-                else
-                    Server.SendTCP(msg.Substring(6 + args[1].Length, msg.Length - (6 + args[1].Length)), int.Parse(args[1]));
+                //if (args.Length == 1)
+                //    Server.SendTCP("NetworkEngine 5.2");
+                //else
+                //    Server.SendTCP(msg.Substring(6 + args[1].Length, msg.Length - (6 + args[1].Length)), int.Parse(args[1]));
+
+                if (args.Length > 1)
+                {
+                    //MemoryStream ms = new MemoryStream();
+                    //BinaryWriter bw = new BinaryWriter(ms);
+                    //bw.Write(args[1]);
+                    //((ServerTcp)server).Send(ms.ToArray(), 0);
+
+                    Packet packet = new Packet();
+                    packet.WriteString(args[1]);
+                    ((ServerTcp)server).Send(packet, 0);
+
+                }
+
             }
 
             if (args[0] == "/sudp")
             {
-                if (args.Length == 1)
-                    Server.SendUDP("NetworkEngine 5.2");
-                else
-                    Server.SendUDP(msg.Substring(6 + args[1].Length, msg.Length - (6 + args[1].Length)), int.Parse(args[1]));
+                //if (args.Length == 1)
+                //    Server.SendUDP("NetworkEngine 5.2");
+                //else
+                //    Server.SendUDP(msg.Substring(6 + args[1].Length, msg.Length - (6 + args[1].Length)), int.Parse(args[1]));
             }
 
             if (args[0] == "/info")
             {
-                print(Client.client.Client.LocalEndPoint.ToString(), ConsoleColor.Cyan);
+                //print(Client.client.Client.LocalEndPoint.ToString(), ConsoleColor.Cyan);
             }
 
             if (args[0] == "/status")
             {
-                Console.Write("STATUS : ");
-                if (Server.GetStatus() == Server.ServerStatus.Offline)
-                    print(Server.GetStatus().ToString().ToUpper(), ConsoleColor.Red);
-                else if (Server.GetStatus() == Server.ServerStatus.Starting)
-                    print(Server.GetStatus().ToString().ToUpper(), ConsoleColor.DarkYellow);
-                else if (Server.GetStatus() == Server.ServerStatus.Online)
-                    print(Server.GetStatus().ToString().ToUpper(), ConsoleColor.Green);
+                if (server != null)
+                {
+                    Console.Write("STATUS : ");
+                    if (server.GetStatus() == ServerBase.ServerStatus.Offline)
+                        print(server.GetStatus().ToString().ToUpper(), ConsoleColor.Red);
+                    else if (server.GetStatus() == ServerBase.ServerStatus.Starting)
+                        print(server.GetStatus().ToString().ToUpper(), ConsoleColor.DarkYellow);
+                    else if (server.GetStatus() == ServerBase.ServerStatus.Online)
+                        print(server.GetStatus().ToString().ToUpper(), ConsoleColor.Green);
+                }
 
             }
 
             if (args[0] == "/state")
             {
-                Console.Write("STATE : ");
-                if (Client.GetState() == Client.ClientState.Disconnected)
-                    print(Client.GetState().ToString().ToUpper(), ConsoleColor.Red);
-                else if (Client.GetState() == Client.ClientState.Connecting)
-                    print(Client.GetState().ToString().ToUpper(), ConsoleColor.DarkYellow);
-                else if (Client.GetState() == Client.ClientState.Connected)
-                    print(Client.GetState().ToString().ToUpper(), ConsoleColor.Green);
+                //Console.Write("STATE : ");
+                //if (Client.GetState() == Client.ClientState.Disconnected)
+                //    print(Client.GetState().ToString().ToUpper(), ConsoleColor.Red);
+                //else if (Client.GetState() == Client.ClientState.Connecting)
+                //    print(Client.GetState().ToString().ToUpper(), ConsoleColor.DarkYellow);
+                //else if (Client.GetState() == Client.ClientState.Connected)
+                //    print(Client.GetState().ToString().ToUpper(), ConsoleColor.Green);
 
             }
 

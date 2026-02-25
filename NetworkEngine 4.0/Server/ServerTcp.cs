@@ -1,23 +1,30 @@
 ﻿using NetworkEngine_5._0.Server;
+using NetworkEngine_5._2.Engine;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using static NetworkEngine_5._0.Server.Server;
 
-namespace NetworkEngine_4._0.Server
+namespace NetworkEngine_5._2.Server
 {
-    public class ServerTcp : ServerBase
+    public partial class ServerTcp : ServerBase
     {
+
+        private byte SERVER_YES = 0;
+        private byte SERVER_FAIL = 1;
+        private byte SERVER_NO = 2;
+        private byte SERVER_FULL = 3;
 
         private TcpListener tcpListener;
 
         public ServerTcp(int _port, int _maxClient = 1000) : base(_port, _maxClient)
         {
-
+            
             tcpListener = new TcpListener(IPAddress.Any, port);
 
         }
@@ -25,7 +32,7 @@ namespace NetworkEngine_4._0.Server
         public override void Start()
         {
 
-            clients = new Dictionary<int, Clients>();
+            clients = new Dictionary<int, ClientConnectionBase>();
 
             _ = StartTcpListener();
 
@@ -72,17 +79,16 @@ namespace NetworkEngine_4._0.Server
 
                     TcpClient cl = await tcpListener.AcceptTcpClientAsync();
 
-                    Clients newC = new Clients(nextClientID);
-                    nextClientID += 1;
-                    newC.SetTcpClient(cl);
+                    ClientConnectionTcp newC = new ClientConnectionTcp(cl, nextClientID, this);
 
+                    nextClientID += 1;
 
                     try
                     {
 
-                        var (success, result) = await CreateTimeout(newC.reader.ReadLineAsync(), 3000);
+                        var (success, result) = await CreateTimeout(newC.Receive(), 3000);
 
-                        if (result != "5.2")
+                        if (Encoding.UTF8.GetString(result) != "5.2")
                         {
                             newC.Disconnect();
                             continue;
@@ -97,29 +103,33 @@ namespace NetworkEngine_4._0.Server
 
                     if (clients.Count == maxClient)
                     {
-                        newC.writer.WriteLine("#FULL");
+                        newC.Send(new Packet(new byte[] { SERVER_FULL }));
                         RaiseServerFull();
                         print("Une connection refusé ! Server plein", ConsoleColor.Red);
                     }
                     else if (!acceptConnection)
                     {
-                        newC.writer.WriteLine("#NO");
+                        newC.Send(new Packet(new byte[] { SERVER_NO }));
                         print("Une connection refusé !", ConsoleColor.Red);
                     }
                     else
                     {
-                        newC.writer.WriteLine("#YES");
+                        newC.Send(new Packet(new byte[] { SERVER_YES }));
                         try
                         {
 
-                            newC.writer.WriteLine("#" + newC.GetID());
+                            MemoryStream ms = new MemoryStream();
+                            BinaryWriter bw = new BinaryWriter(ms);
+                            bw.Write(newC.GetID());
+
+                            newC.Send(new Packet(ms.ToArray()));
 
                             clients.Add(newC.GetID(), newC);
 
                             newC.cts = new CancellationTokenSource();
                             _ = newC.RecepterTCP(newC.cts.Token);
 
-                            print("Une connection établie : " + newC.GetIP() + " ID : " + newC.GetID(), ConsoleColor.DarkMagenta);
+                            print("Une connection établie : " + "newC.GetIP()" + " ID : " + newC.GetID(), ConsoleColor.DarkMagenta);
 
                         }
                         catch (IOException e)
@@ -134,8 +144,14 @@ namespace NetworkEngine_4._0.Server
             }
             catch (SocketException e)
             {
-
+                //Console.WriteLine(e);
             }
+        }
+
+        public void Send(Packet packet, int clientId)
+        {
+            /// Le client n'existe pas lors de la connexion...
+            ((ClientConnectionTcp)clients[clientId]).Send(packet);
         }
 
     }

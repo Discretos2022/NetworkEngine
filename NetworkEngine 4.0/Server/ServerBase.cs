@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static NetworkEngine_5._0.Server.Server;
 
-namespace NetworkEngine_4._0.Server
+namespace NetworkEngine_5._2.Server
 {
     public abstract class ServerBase
     {
 
-        public event Action? OnServerFull;
+        public static event Action? OnServerFull;
+        public static event Action<int, byte[]>? OnReceive;
 
-        public Dictionary<int, Clients> clients = new();
-        public Dictionary<int, Clients> connectingClients = new();
+        public Dictionary<int, ClientConnectionBase> clients = new();
+        public Dictionary<int, ClientConnectionBase> connectingClients = new();
 
         protected ServerStatus status = ServerStatus.Offline;
 
@@ -36,6 +36,11 @@ namespace NetworkEngine_4._0.Server
 
         public abstract void Start();
         public abstract void Stop();
+
+        public ServerStatus GetStatus()
+        {
+            return status;
+        }
 
 
         public void print(string msg, ConsoleColor color, string log = "[SERVER]")
@@ -63,6 +68,15 @@ namespace NetworkEngine_4._0.Server
         }
 
         protected void RaiseServerFull() => OnServerFull?.Invoke();
+        protected void RaiseReceive(int clientId, byte[] bytes) => OnReceive?.Invoke(clientId, bytes);
+
+
+        public enum ServerStatus
+        {
+            Offline = 0,
+            Starting = 1,
+            Online = 2,
+        };
 
     }
 }
