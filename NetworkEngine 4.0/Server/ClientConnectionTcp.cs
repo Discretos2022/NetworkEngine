@@ -36,14 +36,12 @@ namespace NetworkEngine_5._2.Server
             public async Task<byte[]> Receive()
             {
 
-                byte[] bufferSize = await Engine.NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
-                int size = BitConverter.ToInt32(bufferSize, 0);
+                byte[] bufferSize = await NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
+                int size = bufferSize.Length == 4 ? BitConverter.ToInt32(bufferSize, 0) : 0;
 
-
-                byte[] bufferData = await Engine.NetworkUtils.ReadByte(stream, size);
+                byte[] bufferData = await NetworkUtils.ReadByte(stream, size);
 
                 return bufferData;
-
             }
 
             public void Send(Packet packet)
@@ -64,9 +62,7 @@ namespace NetworkEngine_5._2.Server
 
             public void StartRecepter()
             {
-
                 _ = RecepterTCP(cts.Token);
-
             }
 
 
@@ -81,19 +77,7 @@ namespace NetworkEngine_5._2.Server
                     while (!token.IsCancellationRequested)
                     {
 
-                        byte[] bufferSize = await NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
-
-                        if (bufferSize.Length == 0)
-                        {
-                            isDisconnection = true;
-                            break;
-                        }
-
-                        int size = BitConverter.ToInt32(bufferSize, 0);
-
-
-                        byte[] bufferData = await NetworkUtils.ReadByte(stream, size);
-
+                        byte[] bufferData = await Receive();
                         if (bufferData.Length == 0)
                         {
                             isDisconnection = true;
@@ -101,10 +85,6 @@ namespace NetworkEngine_5._2.Server
                         }
 
                         server.RaiseReceive(ID, bufferData);
-
-
-                        //Server.print($"New Message : " + msg, ConsoleColor.Cyan, $"[CLIENT {ID}]");
-                        //ServerReader.ReadTCPPacket(msg, ID);
 
                     }
 
@@ -120,17 +100,17 @@ namespace NetworkEngine_5._2.Server
                     if (isDisconnection)
                     {
                         server.print($"Client {ID} disconnected ! \n", ConsoleColor.DarkMagenta);
-                        // OnClientDisconnect?.Invoke();
+                        server.RaiseClientDisconnect(ID);
                     }
                     else if (token.IsCancellationRequested)
                     {
                         server.print($"Client {ID} disconnected by server ! \n", ConsoleColor.DarkMagenta);
-                        // OnClientDisconnect?.Invoke();
+                        server.RaiseClientDisconnectedByServer(ID);
                     }
                     else
                     {
                         server.print($"Client {ID} lost connection ! \n", ConsoleColor.DarkMagenta);
-                        // OnClientLostConnection?.Invoke();
+                        server.RaiseClientLostConnection(ID);
                     }
 
                     server.clients.Remove(ID);

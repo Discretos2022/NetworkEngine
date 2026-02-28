@@ -10,8 +10,13 @@ namespace NetworkEngine_5._2.Server
     public abstract class ServerBase
     {
 
-        public static event Action? OnServerFull;
-        public static event Action<int, byte[]>? OnReceive;
+        public event Action? OnServerFull;
+
+        public event Action<int>? OnClientConnectionFailed;
+        public event Action<int>? OnClientDisconnect;
+        public event Action<int>? OnClientLostConnection;
+        public event Action<int>? OnClientDisconnectedByServer;
+        public event Action<int, byte[]>? OnReceive;
 
         public Dictionary<int, ClientConnectionBase> clients = new();
         public Dictionary<int, ClientConnectionBase> connectingClients = new();
@@ -68,6 +73,11 @@ namespace NetworkEngine_5._2.Server
         }
 
         protected void RaiseServerFull() => OnServerFull?.Invoke();
+
+        protected void RaiseClientConnectionFailed(int clientId) => OnClientConnectionFailed?.Invoke(clientId);
+        protected void RaiseClientDisconnect(int clientId) => OnClientDisconnect?.Invoke(clientId);
+        protected void RaiseClientLostConnection(int clientId) => OnClientLostConnection?.Invoke(clientId);
+        protected void RaiseClientDisconnectedByServer(int clientId) => OnClientDisconnectedByServer?.Invoke(clientId);
         protected void RaiseReceive(int clientId, byte[] bytes) => OnReceive?.Invoke(clientId, bytes);
 
 

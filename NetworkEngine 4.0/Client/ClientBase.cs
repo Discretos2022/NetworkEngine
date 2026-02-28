@@ -10,16 +10,16 @@ namespace NetworkEngine_5._2.Client
     public abstract class ClientBase
     {
 
-        public static event Action? OnTimeOut;
-        public static event Action? OnServerFull;
-        public static event Action? OnConnectionRefused;
-        public static event Action? OnConnectionFail;
-        public static event Action? OnConnectionLost;
-        public static event Action? OnServerShutdown;
-        public static event Action? OnConnected;
-        public static event Action? OnDisconnected;
+        public event Action? OnTimeOut;
+        public event Action? OnServerFull;
+        public event Action? OnConnectionRefused;
+        public event Action? OnConnectionFail;
+        public event Action? OnConnectionLost;
+        public event Action? OnServerShutdown;
+        public event Action? OnConnected;
+        public event Action? OnDisconnected;
 
-        public static event Action<Packet>? OnReceive;
+        public event Action<Packet>? OnReceive;
 
         public static bool clientLog = true;
 

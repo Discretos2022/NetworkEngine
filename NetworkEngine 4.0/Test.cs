@@ -19,8 +19,8 @@ namespace Tester
     {
 
         static ServerBase server = new ServerTcp(7777, 1000);
-        // static ClientBase client = new ClientTcp("192.168.1.25", 7777); // 172.20.10.8
-        static ClientBase client = new ClientTcp("172.20.10.8", 7777); // 172.20.10.8
+        static ClientBase client = new ClientTcp("192.168.1.25", 7777); // 172.20.10.8
+        // static ClientBase client = new ClientTcp("172.20.10.8", 7777); // 172.20.10.8
 
         static void Main(string[] args)
         {
@@ -58,10 +58,10 @@ namespace Tester
             //};
 
 
-            ClientBase.OnReceive += ClientBase_OnReceive;
-            ClientBase.OnConnectionLost += ClientBase_OnConnectionLost;
+            client.OnReceive += ClientBase_OnReceive;
+            client.OnConnectionLost += ClientBase_OnConnectionLost;
 
-            ServerBase.OnReceive += ServerBase_OnReceive;
+            server.OnReceive += ServerBase_OnReceive;
 
 
             while (true)

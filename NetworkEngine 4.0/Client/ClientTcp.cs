@@ -19,8 +19,6 @@ namespace NetworkEngine_5._2.Client
 
         public TcpClient client;
         public NetworkStream stream;
-        public StreamReader reader;
-        public StreamWriter writer;
 
         private CancellationTokenSource cts;
 
@@ -102,13 +100,11 @@ namespace NetworkEngine_5._2.Client
         {
 
             byte[] bufferSize = await NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
-            int size = BitConverter.ToInt32(bufferSize, 0);
-
+            int size = bufferSize.Length == 4 ? BitConverter.ToInt32(bufferSize, 0) : 0;
 
             byte[] bufferData = await NetworkUtils.ReadByte(stream, size);
 
             return bufferData;
-
         }
 
         private async Task ConnectClient()
@@ -120,9 +116,6 @@ namespace NetworkEngine_5._2.Client
                 await client.ConnectAsync(ip, port);
 
                 stream = client.GetStream();
-                reader = new StreamReader(stream);
-                writer = new StreamWriter(stream);
-                writer.AutoFlush = true;
 
                 Send(Encoding.UTF8.GetBytes("5.2"));
 
@@ -131,7 +124,6 @@ namespace NetworkEngine_5._2.Client
                 try
                 {
                     var (success, result) = await CreateTimeout(Receive(), 3000);
-                    // response = Encoding.UTF8.GetString(result);
                     if (result.Length > 0) response = result[0];
                 }
                 catch (TimeoutException e)
@@ -170,8 +162,6 @@ namespace NetworkEngine_5._2.Client
                         return;
                     }
 
-
-                    // ID = int.Parse(clientId.Substring(1));
                     ID = clientId;
 
                     cts = new CancellationTokenSource();
@@ -213,80 +203,14 @@ namespace NetworkEngine_5._2.Client
                 while (!token.IsCancellationRequested)
                 {
 
-                    /// Récupérer la taille du packet
-                    //byte[] bufferSize = new byte[4];
-                    //int offset = 0;
-
-                    //while (offset < 4)
-                    //{
-                    //    int read = await stream.ReadAsync(bufferSize, offset, 4 - offset);
-
-                    //    /// Arret sans erreurs !
-                    //    if (read == 0)
-                    //    {
-                    //        isServerShutdown = true;
-                    //        break;
-                    //    }
-
-                    //    offset += read;
-
-                    //}
-
-                    byte[] bufferSize = await Engine.NetworkUtils.ReadByte(stream, 4);
-
-                    if (bufferSize.Length == 0)
+                    byte[] bufferData = await Receive();
+                    if (bufferData.Length == 0)
                     {
                         isServerShutdown = true;
                         break;
                     }
 
-                    int size = BitConverter.ToInt32(bufferSize, 0);
-
-                    //if (isServerShutdown) break;
-
-                    /// Lire les données du packet
-                    byte[] bufferData = new byte[size];
-                    int offsetData = 0;
-
-                    int decoupe = 0;
-
-                    while (offsetData < size)
-                    {
-                        int read = await stream.ReadAsync(bufferData, offsetData, size - offsetData);
-
-                        /// Arret sans erreurs !
-                        if (read == 0)
-                        {
-                            isServerShutdown = true;
-                            break;
-                        }
-
-                        offsetData += read;
-
-                        decoupe += 1;
-
-                    }
-
-                    if (isServerShutdown) break;
-
-                    Console.WriteLine("decoupe : " + decoupe + " / size : " + bufferData.Length);
-
                     RaiseReceive(new Packet(bufferData));
-
-
-
-
-                    //var msg = await reader.ReadLineAsync();
-
-                    ///// Arret sans erreurs !
-                    //if (msg == null)
-                    //{
-                        //isServerShutdown = true;
-                        //break;
-                    //}
-
-                    //print("new Message : " + msg, ConsoleColor.Cyan);
-                    //ClientReader.ReadTCPPacket(msg);
 
                 }
 
@@ -329,8 +253,6 @@ namespace NetworkEngine_5._2.Client
         {
             if (state == ClientState.Disconnected) return;
 
-            writer?.Close();
-            reader?.Close();
             stream?.Close();
             client?.Close();
 
