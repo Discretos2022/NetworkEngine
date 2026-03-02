@@ -1,11 +1,7 @@
 ﻿using NetworkEngine_5._2.Engine;
 using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace NetworkEngine_5._2.Client
 {
@@ -68,17 +64,6 @@ namespace NetworkEngine_5._2.Client
 
         }
 
-        public void Send(byte[] bytes)
-        {
-
-            MemoryStream ms = new MemoryStream();
-            BinaryWriter bw = new BinaryWriter(ms);
-            bw.Write(bytes.Length);
-            bw.Write(bytes);
-
-            _ = InternalSend(ms.ToArray());
-        }
-
         public void Send(Packet packet)
         {
 
@@ -100,7 +85,7 @@ namespace NetworkEngine_5._2.Client
         {
 
             byte[] bufferSize = await NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
-            int size = bufferSize.Length == 4 ? BitConverter.ToInt32(bufferSize, 0) : 0;
+            int size = NetworkUtils.ByteToInt(bufferSize);
 
             byte[] bufferData = await NetworkUtils.ReadByte(stream, size);
 
@@ -117,7 +102,7 @@ namespace NetworkEngine_5._2.Client
 
                 stream = client.GetStream();
 
-                Send(Encoding.UTF8.GetBytes("5.2"));
+                Send(new Packet(Encoding.UTF8.GetBytes("5.2")));
 
                 byte response = SERVER_FAIL;
 

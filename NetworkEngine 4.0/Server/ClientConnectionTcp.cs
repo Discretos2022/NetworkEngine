@@ -1,11 +1,6 @@
-﻿using NetworkEngine_5._0.Server;
-using NetworkEngine_5._2.Engine;
+﻿using NetworkEngine_5._2.Engine;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NetworkEngine_5._2.Server
 {
@@ -37,7 +32,7 @@ namespace NetworkEngine_5._2.Server
             {
 
                 byte[] bufferSize = await NetworkUtils.ReadByte(stream, Packet.MESSAGE_LENGTH_BYTE);
-                int size = bufferSize.Length == 4 ? BitConverter.ToInt32(bufferSize, 0) : 0;
+                int size = NetworkUtils.ByteToInt(bufferSize);
 
                 byte[] bufferData = await NetworkUtils.ReadByte(stream, size);
 

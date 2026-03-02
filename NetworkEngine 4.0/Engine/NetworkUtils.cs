@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NetworkEngine_5._2.Engine
 {
@@ -33,6 +28,18 @@ namespace NetworkEngine_5._2.Engine
             }
 
             return buffer;
+
+        }
+
+        public static int ByteToInt(byte[] bytes)
+        {
+
+            int result = 0;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                result |= bytes[i] << (i * 8);
+            }
+            return result;
 
         }
 
